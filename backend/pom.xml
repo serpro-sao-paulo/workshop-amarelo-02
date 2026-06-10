@@ -19,6 +19,8 @@
 
     <properties>
         <java.version>25</java.version>
+        <!-- CVE-2026-42198 fix: pgjdbc SCRAM iteration DoS; 42.7.11 patches it -->
+        <postgresql.version>42.7.11</postgresql.version>
     </properties>
 
     <dependencies>
