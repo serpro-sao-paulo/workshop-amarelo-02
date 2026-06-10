@@ -88,21 +88,28 @@
 
 ## 4. Mistérios e Riscos
 
-### 4.1 Mistérios Não Resolvidos
+### 4.1 Mistérios Não Resolvidos (bloqueadores do Estágio 2)
 
-> Resuma os mistérios do arquivo `mysteries-found.md` que permanecem sem explicação.
+> Extraídos de [`mysteries-found.md`](mysteries-found.md) — classificação `blocks-stage-2`.
 
 | ID  | Descrição | Risco para Migração |
 | --- | --------- | ------------------- |
-|     |           |                     |
+| MYS-001 | Modelo de estados do pagamento ambíguo: `'P'` = pendente (docs) vs PAGO (código); `'G'` sem doc | Máquina de estados errada corrompe todo o ciclo de pagamento |
+| MYS-002 | `FATOR-K = 0,347215` ajusta todo VLR-BASE de programa na inclusão (CADPROG) | Todos os valores-base migram errados se o fator não for replicado |
+| MYS-003 | Backdoor: prefixos de CPF (`000,001,...,999`) anulam todas as validações (VALDOCS) | Cadastro fraudulento; decisão de segurança pendente |
+| MYS-004 | Relatório de auditoria oculta exclusões (`ACAO='EX'`) (RELAUDIT) | Trilha de auditoria incompleta — risco de compliance |
+| MYS-005 | Mascaramento de CPF defeituoso, autoadmitido (CONSBENF) | Exposição de dado pessoal (LGPD) |
+| MYS-006 | Desconto calculado de 3 formas (3% inline vs motor CALCDSCT 30%+tipos) | Valor de desconto inconsistente entre fluxos |
 
 ### 4.2 Riscos para o Estágio 2
 
-> O que o time de especificação precisa saber antes de começar?
+> O que o time de especificação precisa saber antes de começar:
 
-1. [Risco 1]
-2. [Risco 2]
-3. [Risco 3]
+1. **Modelo de estados do pagamento não é confiável** — `'P'`/`'G'` divergem entre código e docs (MYS-001, MYS-013). Definir a máquina de estados antes de qualquer EARS de pagamento.
+2. **Lógica financeira duplicada e divergente** — BATCHPGT reimplementa CALCBENF inline (MYS-007) e há 3 cálculos de desconto (MYS-006). Escolher a regra canônica.
+3. **Validação de CPF triplicada com bypasses** — CADBENEF/VALBENEF/VALDOCS (MYS-003, MYS-009). Unificar em um único serviço.
+4. **Constantes mágicas sem origem** — FATOR-K 0,347215, abono 15%, tolerância R$0,01, faixas 600/60/16/65 (MYS-002, MYS-015, MYS-023, MYS-027). Precisam de confirmação do facilitador/PO.
+5. **Tabela IPCA incompleta** (só 2010–2012) → correção silenciosamente zero para anos recentes (MYS-008).
 
 ---
 
@@ -136,22 +143,54 @@
 
 | Métrica                       | Valor        |
 | ----------------------------- | ------------ |
-| Programas analisados          | \_\_\_ / 15  |
-| DDMs mapeados                 | \_\_\_ / 4   |
-| Regras de negócio encontradas | \_\_\_       |
-| Regras escondidas encontradas | \_\_\_ / 10  |
-| Easter eggs encontrados       | \_\_\_ / 3   |
-| Termos no glossário           | \_\_\_       |
-| Mistérios catalogados         | \_\_\_       |
+| Programas analisados          | 15 / 15      |
+| DDMs mapeados                 | 4 / 4        |
+| Regras de negócio encontradas | ~100 (20 consolidadas BR-001..BR-020) |
+| Regras escondidas encontradas | 10+ / 10     |
+| Easter eggs encontrados       | 2 / 3 (Banco Real, Plano Verão) |
+| Termos no glossário           | a preencher (glossary.md) |
+| Mistérios catalogados         | 34 (6 bloqueadores) |
 | Tempo total gasto             | \_\_\_ horas |
 
 ---
 
 ## 7. Notas para o Próximo Estágio
 
-> Deixe aqui mensagens para o time no Estágio 2 (Especificação Moderna):
+> Mensagens para o time no Estágio 2 (Especificação Moderna):
 
-[Escreva aqui]
+### Resumo Executivo (≤5 frases)
+
+1. O legado SIFAP tem **15 programas Natural** (~2.800 linhas) e **4 DDMs** Adabas (BENEFICIARIO, PAGAMENTO, PROGRAMA-SOCIAL, AUDITORIA), todos lidos.
+2. Foram extraídas **~100 regras de negócio** (20 consolidadas como BR-001..BR-020), das quais **~10 confirmadas** por documentação e ~25 marcadas como mistério.
+3. O sistema é **fracamente acoplado por chamada** (zero CALLNAT/INCLUDE) e **fortemente acoplado por dados**: os 15 programas se comunicam só via DDMs (44 arestas programa→dados).
+4. O maior risco é o **modelo de estados do pagamento ambíguo** (MYS-001: `'P'` pendente vs pago), seguido do FATOR-K e dos bypasses de validação/auditoria.
+5. Confiança para modernizar: **Média** — o domínio está bem mapeado, mas 6 bloqueadores precisam de decisão do PO/facilitador antes das EARS.
+
+### O Que Sabemos — Confirmado (cita fonte)
+
+- **Teto de descontos 30%, judicial sem teto** — [business-rules-catalog.md BR-001](business-rules-catalog.md) (`CALCDSCT.NSN#L101-L169`). EARS: *Unwanted*.
+- **CPF validado por módulo 11** — [BR-002](business-rules-catalog.md) (`CADBENEF.NSN#L224-L269`). EARS: *Unwanted*.
+- **Contribuição social progressiva por faixa** — [BR-003](business-rules-catalog.md) (`CALCDSCT.NSN#L57-L65`). EARS: *Ubiquitous*.
+- **Cálculo do benefício (motor)** — [BR-004](business-rules-catalog.md) (`CALCBENF.NSN#L221-L233`). EARS: *Ubiquitous*.
+- **Só beneficiário ativo gera pagamento** — [BR-005](business-rules-catalog.md) (`BATCHPGT.NSN#L195-L210`). EARS: *State-driven*.
+- **Dependências:** 0 arestas programa→programa; 44 arestas programa→dados — [dependency-map.md](dependency-map.md). DDM mais acessado: `BENEFICIARIO` (9 programas).
+- **DDMs:** 4 documentados ([inventory.md](inventory.md)); `PAGAMENTO` é o ponto de maior concorrência (8 programas escrevem/leem).
+
+### O Que Traz Risco — Regras inferidas (evidência fraca)
+
+A maioria das ~100 regras é **Inferida** (só código, sem doc): fatores familiar/idade/renda, idempotência por competência, faixas de elegibilidade. Tratá-las como hipóteses ao escrever EARS — confirmar com PO antes de fixar acceptance.
+
+### Hipóteses de Recorte (bounded contexts) — para o @architect avaliar
+
+> ⚠️ **São hipóteses, não decisões.** Derivadas dos clusters de acesso a DDM (não há call graph).
+
+- **Hipótese 1 — Cadastro de Beneficiário** *(DDM BENEFICIARIO)*: `CADBENEF`, `CADDEPEND`, `VALBENEF`, `VALDOCS`, `CONSBENF` — entidade central, validações e consulta giram em torno de um único agregado.
+- **Hipótese 2 — Pagamento & Ciclo** *(DDM PAGAMENTO)*: `BATCHPGT`, `CALCBENF`, `CALCDSCT`, `CALCCORR`, `RELPGT` — geração, cálculo, desconto e correção do pagamento; coração financeiro.
+- **Hipótese 3 — Programa Social** *(DDM PROGRAMA-SOCIAL)*: `CADPROG`, `VALELEG` — parâmetros e elegibilidade; fronteira natural por possuir as regras de programa.
+- **Hipótese 4 — Conciliação & Auditoria** *(DDM AUDITORIA + PAGAMENTO)*: `BATCHCON`, `RELAUDIT` — integração bancária (CNAB) e trilha de auditoria; toca PAGAMENTO mas tem ciclo de vida próprio.
+- **Hipótese 5 — Relatórios Gerenciais** *(leitura cross-DDM)*: `BATCHREL` (+ `RELPGT`/`RELAUDIT` como leitores) — candidato a *read model*/BI separado, já que só consolida dados.
+
+> **Tensão de fronteira:** `PAGAMENTO` é tocado por 8 programas de 3 hipóteses distintas — será o principal ponto de negociação de contexto no Estágio 2.
 
 ---
 
