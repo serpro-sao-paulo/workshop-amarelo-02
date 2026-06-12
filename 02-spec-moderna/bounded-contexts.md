@@ -171,11 +171,11 @@ flowchart LR
 
 | Hipótese | Recomendação do agente | Decisão da Equipe | Raciocínio |
 |----------|------------------------|-------------------|------------|
-| H1 Cadastro de Beneficiário | ACEITA | <!-- preencher --> | |
-| H2 Pagamento & Ciclo | ACEITA (resolver duplicação) | <!-- preencher --> | |
-| H3 Programa Social | ACEITA | <!-- preencher --> | |
-| H4 Conciliação & Auditoria | ACEITA (ajustada: Auditoria própria; Conciliação = adapter de Payment) | <!-- preencher --> | |
-| H5 Relatórios Gerenciais | REJEITADA (vira read model) | <!-- preencher --> | |
+| H1 Cadastro de Beneficiário | ACEITA | ACEITA | |
+| H2 Pagamento & Ciclo | ACEITA (resolver duplicação) | ACEITA | |
+| H3 Programa Social | ACEITA | ACEITA | |
+| H4 Conciliação & Auditoria | ACEITA (ajustada: Auditoria própria; Conciliação = adapter de Payment) | ACEITA | |
+| H5 Relatórios Gerenciais | REJEITADA (vira read model) | ACEITA | |
 
 ## Artefatos-Fonte
 
@@ -186,6 +186,6 @@ flowchart LR
 
 ## Aprovação
 
-- Revisado por: <!-- preencher -->
-- Data: <!-- preencher -->
-- Confiança: <!-- Alta / Média / Baixa -->
+- Revisado por: Luis Antonio Salles
+- Data: 11/06/2026
+- Confiança: Alta

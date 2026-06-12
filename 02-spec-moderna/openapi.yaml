@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: SIFAP 2.0 API
+  version: 0.1.0
+  description: >
+    Esqueleto OpenAPI do Modular Monolith SIFAP 2.0. Define assinaturas (paths, métodos,
+    tags por bounded context), não implementações. Schemas são referências a serem
+    detalhadas no Estágio 3. Rastreabilidade: ./SPECIFICATION.md (REQ-001..REQ-020).
+
+servers:
+  - url: /api/v1
+    description: Base path (convenção /api/v1/{resource})
+
+tags:
+  - name: Beneficiary Management
+    description: Cadastro, validação e consulta de beneficiários e dependentes
+  - name: Social Program
+    description: Parâmetros de programas sociais e elegibilidade
+  - name: Payment & Cycle
+    description: Ciclo de pagamento, cálculo e conciliação bancária
+  - name: Audit Trail
+    description: Consulta da trilha de auditoria
+
+paths:
+  /beneficiaries:
+    post:
+      tags: [Beneficiary Management]
+      summary: Cadastra um beneficiário
+      description: "REQ-001..REQ-004"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BeneficiaryInput'
+      responses:
+        '201':
+          description: Beneficiário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeneficiarySummary'
+        '409':
+          description: CPF já cadastrado (REQ-004)
+        '422':
+          description: Falha de validação (REQ-001..REQ-003)
+
+  /beneficiaries/{cpf}:
+    parameters:
+      - $ref: '#/components/parameters/Cpf'
+    get:
+      tags: [Beneficiary Management]
+      summary: Consulta um beneficiário (CPF mascarado)
+      description: "REQ-006"
+      responses:
+        '200':
+          description: Beneficiário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeneficiarySummary'
+        '404':
+          description: Beneficiário inexistente
+    put:
+      tags: [Beneficiary Management]
+      summary: Altera um beneficiário
+      description: "REQ-004"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BeneficiaryInput'
+      responses:
+        '200':
+          description: Beneficiário alterado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeneficiarySummary'
+        '404':
+          description: Beneficiário inexistente (REQ-004)
+
+  /beneficiaries/{cpf}/dependents:
+    parameters:
+      - $ref: '#/components/parameters/Cpf'
+    post:
+      tags: [Beneficiary Management]
+      summary: Inclui um dependente
+      description: "REQ-005 (limite de 5 dependentes)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DependentInput'
+      responses:
+        '201':
+          description: Dependente incluído
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BeneficiarySummary'
+        '409':
+          description: Limite de dependentes atingido (REQ-005)
+
+  /social-programs:
+    post:
+      tags: [Social Program]
+      summary: Cadastra um programa social
+      description: "REQ-007"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocialProgramInput'
+      responses:
+        '201':
+          description: Programa criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramParameters'
+
+  /social-programs/{code}:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Social Program]
+      summary: Consulta os parâmetros de um programa social
+      description: "REQ-007"
+      responses:
+        '200':
+          description: Parâmetros do programa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgramParameters'
+        '404':
+          description: Programa inexistente
+
+  /social-programs/{code}/eligibility:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cpf
+        in: query
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Social Program]
+      summary: Avalia a elegibilidade de um beneficiário no programa
+      description: "REQ-008"
+      responses:
+        '200':
+          description: Resultado da elegibilidade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EligibilityResult'
+
+  /payment-cycles:
+    post:
+      tags: [Payment & Cycle]
+      summary: Dispara o ciclo de pagamento mensal
+      description: "REQ-009, REQ-010, REQ-013..REQ-015"
+      parameters:
+        - name: competence
+          in: query
+          required: true
+          description: Competência no formato AAAA-MM
+          schema:
+            type: string
+            example: "2026-06"
+      responses:
+        '202':
+          description: Ciclo iniciado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CycleResult'
+
+  /payments:
+    get:
+      tags: [Payment & Cycle]
+      summary: Consulta pagamentos
+      description: "REQ-011, REQ-012"
+      parameters:
+        - name: cpf
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: competence
+          in: query
+          required: false
+          schema:
+            type: string
+            example: "2026-06"
+      responses:
+        '200':
+          description: Lista de pagamentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentView'
+
+  /reconciliations:
+    post:
+      tags: [Payment & Cycle]
+      summary: Submete um arquivo de retorno bancário (CNAB) para conciliação
+      description: "REQ-016, REQ-017"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '202':
+          description: Conciliação iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReconciliationResult'
+
+  /audit-events:
+    get:
+      tags: [Audit Trail]
+      summary: Consulta a trilha de auditoria (completa, inclui exclusões)
+      description: "REQ-018, REQ-019"
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: cpf
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Eventos de auditoria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AuditEvent'
+
+components:
+  parameters:
+    Cpf:
+      name: cpf
+      in: path
+      required: true
+      description: CPF do beneficiário (somente dígitos)
+      schema:
+        type: string
+
+  schemas:
+    # Esqueleto — propriedades detalhadas no Estágio 3 pelo @builder-agent.
+    BeneficiaryInput:
+      type: object
+      description: "Dados de entrada de cadastro/alteração (REQ-001..REQ-004)"
+    BeneficiarySummary:
+      type: object
+      description: "Resumo do beneficiário com CPF mascarado (REQ-006)"
+    DependentInput:
+      type: object
+      description: "Dados de um dependente (REQ-005)"
+    SocialProgramInput:
+      type: object
+      description: "Dados de cadastro de programa social (REQ-007)"
+    ProgramParameters:
+      type: object
+      description: "Parâmetros do programa social (REQ-007)"
+    EligibilityResult:
+      type: object
+      description: "Resultado de elegibilidade (REQ-008)"
+    CycleResult:
+      type: object
+      description: "Sumário do ciclo de pagamento (REQ-009, REQ-010)"
+    PaymentView:
+      type: object
+      description: "Visão de um pagamento (REQ-011..REQ-014)"
+    ReconciliationResult:
+      type: object
+      description: "Sumário da conciliação bancária (REQ-016, REQ-017)"
+    AuditEvent:
+      type: object
+      description: "Evento da trilha de auditoria (REQ-018..REQ-020)"

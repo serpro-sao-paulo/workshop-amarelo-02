@@ -1,0 +1,57 @@
+# Docker Compose para desenvolvimento local do SIFAP 2.0
+# Sobe PostgreSQL 16 + backend + frontend
+#
+# Uso rapido:
+#   docker compose up db          # somente banco
+#   docker compose up             # tudo
+#   SIFAP_DB_PASS=senha docker compose up
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: sifap-db
+    environment:
+      POSTGRES_DB: sifap
+      POSTGRES_USER: sifap
+      POSTGRES_PASSWORD: ${SIFAP_DB_PASS:-sifap}
+    ports:
+      - "5432:5432"
+    volumes:
+      - sifap_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sifap -d sifap"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sifap-backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SIFAP_DB_URL: jdbc:postgresql://db:5432/sifap
+      SIFAP_DB_USER: sifap
+      SIFAP_DB_PASS: ${SIFAP_DB_PASS:-sifap}
+    ports:
+      - "8080:8080"
+    profiles: [full]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sifap-frontend
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+    profiles: [full]
+
+volumes:
+  sifap_pgdata:

@@ -9,7 +9,15 @@
     "chat.tools.terminal.autoApprove": {
         ".specify/scripts/bash/": true,
         ".specify/scripts/powershell/": true,
-        "awk": true
+        "awk": true,
+        "/^cd /home/s076193188/Documentos/curso-ia/workshop-amarelo-02/03-codigo-moderno/backend && \\./mvnw -q -o compile 2>&1 \\| tail -30 \\|\\| mvn -q compile 2>&1 \\| tail -30$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^mvn -q compile && echo \"BUILD_OK exit=\\$\\?\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     },
     "java.compile.nullAnalysis.mode": "automatic",
     "java.configuration.updateBuildConfiguration": "interactive"
