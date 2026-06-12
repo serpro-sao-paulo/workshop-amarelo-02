@@ -45,14 +45,13 @@ public class BeneficiaryController {
         return ResponseEntity.created(location).body(toSummary(saved));
     }
 
-    @Operation(summary = "Consulta um beneficiário com CPF mascarado",
-               description = "REQ-006. CPF exibido mascarado (LGPD).")
+    @Operation(summary = "Consulta detalhada de um beneficiário com CPF mascarado",
+               description = "REQ-006. Retorna todos os dados cadastrais; CPF exibido mascarado (LGPD).")
     @ApiResponse(responseCode = "200", description = "Beneficiário encontrado")
     @ApiResponse(responseCode = "404", description = "Beneficiário não encontrado")
     @GetMapping("/{cpf}")
-    public ResponseEntity<BeneficiarySummaryResponse> findByCpf(@PathVariable String cpf) {
-        return service.findByCpf(cpf)
-                .map(this::toSummary)
+    public ResponseEntity<BeneficiaryDetailResponse> findByCpf(@PathVariable String cpf) {
+        return service.findDetailByCpf(cpf, b -> BeneficiaryDetailResponse.from(b, cpfMask))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }

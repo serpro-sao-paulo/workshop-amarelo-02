@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * Service do contexto Beneficiary Management.
@@ -94,5 +95,18 @@ public class BeneficiaryService {
     /** REQ-006: consulta com CPF mascarado (a mascara e aplicada no controller). */
     public Optional<Beneficiary> findByCpf(String cpf) {
         return repo.findByCpf(cpf);
+    }
+
+    /**
+     * REQ-006: consulta detalhada. O mapeamento ocorre dentro da transacao para
+     * inicializar a colecao lazy de dependentes (grupo PE GRP-DEPENDENTE).
+     */
+    @Transactional
+    public <T> Optional<T> findDetailByCpf(String cpf, Function<Beneficiary, T> mapper) {
+        return repo.findByCpf(cpf)
+                .map(b -> {
+                    b.getDependents().size(); // forca inicializacao da colecao lazy
+                    return mapper.apply(b);
+                });
     }
 }

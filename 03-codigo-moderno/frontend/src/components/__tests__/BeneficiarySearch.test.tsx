@@ -17,11 +17,57 @@ describe("BeneficiarySearch", () => {
     expect(screen.getByRole("button", { name: /buscar/i })).toBeTruthy();
   });
 
-  it("should display masked CPF when beneficiary is found", async () => {
+  it("should display masked CPF and full data when beneficiary is found", async () => {
     const mockData = {
       maskedCpf: "***.***.777-35",
-      name: "JOSE DA SILVA",
+      registrationNumber: "12345678901",
+      fullName: "JOSE DA SILVA",
+      motherName: "MARIA DA SILVA",
+      fatherName: null,
+      birthDate: "1980-05-10",
+      gender: "M",
+      maritalStatus: "C",
+      rgNumber: "1234567",
+      rgIssuer: "SSP",
+      rgState: "SP",
+      rgIssueDate: "2000-01-01",
+      street: "RUA A",
+      streetNumber: "100",
+      complement: null,
+      neighborhood: "CENTRO",
+      city: "SAO PAULO",
+      uf: "SP",
+      zipCode: 1310100,
+      ibgeCode: 3550308,
+      regionCode: "03",
+      programCode: "0001",
+      registrationDate: "2010-03-01",
+      benefitStartDate: "2010-04-01",
+      benefitEndDate: null,
       status: "A",
+      statusReason: null,
+      statusDate: "2010-04-01",
+      familyIncome: 1500.5,
+      familyMembers: 4,
+      perCapitaIncome: 375.13,
+      phoneLandline: null,
+      phoneMobile: "11999990000",
+      email: "jose@example.com",
+      biometricStatus: "S",
+      biometricCollectionDate: "2015-06-01",
+      biometricPostCode: "001234",
+      dependents: [
+        {
+          maskedCpf: "***.***.111-22",
+          name: "ANA DA SILVA",
+          birthDate: "2010-08-15",
+          kinship: "FI",
+          status: "A",
+          disabilityFlag: "N",
+        },
+      ],
+      createdAt: "2010-03-01T10:00:00",
+      updatedAt: null,
     };
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
@@ -38,7 +84,11 @@ describe("BeneficiarySearch", () => {
     await waitFor(() => {
       expect(screen.getByText("***.***.777-35")).toBeTruthy();
       expect(screen.getByText("JOSE DA SILVA")).toBeTruthy();
-      expect(screen.getByText("Ativo")).toBeTruthy();
+      expect(screen.getAllByText("Ativo").length).toBeGreaterThan(0);
+      expect(screen.getByText("MARIA DA SILVA")).toBeTruthy();
+      expect(screen.getByText("jose@example.com")).toBeTruthy();
+      expect(screen.getByText("ANA DA SILVA")).toBeTruthy();
+      expect(screen.getByText("***.***.111-22")).toBeTruthy();
     });
   });
 
